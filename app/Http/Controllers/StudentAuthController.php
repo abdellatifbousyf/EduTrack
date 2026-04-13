@@ -5,16 +5,17 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Student;
+use App\Models\User;
 
 class StudentAuthController extends Controller
 {
-    // 1. عرض صفحة تسجيل الدخول
+    // عرض صفحة الدخول
     public function showLoginForm()
     {
         return view('student.login');
     }
 
-    // 2. معالجة تسجيل الدخول
+    // معالجة تسجيل الدخول
     public function login(Request $request)
     {
         $request->validate([
@@ -22,12 +23,19 @@ class StudentAuthController extends Controller
             'password' => 'required',
         ]);
 
-        // البحث عن التلميذ برقم مسار أو بريد
-        $student = Student::where('massar_code', $request->email)
-                         ->orWhereHas('user', function($q) use ($request) {
-                             $q->where('email', $request->email);
-                         })->first();
+        // 🔴 طريقة البحث البسيطة:
+        // 1. إما نلقاو التلميذ برقم مسار
+        $student = Student::where('massar_code', $request->email)->first();
 
+        // 2. إما نلقاو المستخدم بالبريد الإلكتروني ونشوفو واش عندو طالب مربوط بيه
+        if (!$student) {
+            $user = User::where('email', $request->email)->first();
+            if ($user && $user->student_id) {
+                $student = $user->student;
+            }
+        }
+
+        // إلا لقينا التلميذ وحاولنا تسجيل الدخول
         if ($student && $student->user) {
             if (Auth::attempt([
                 'email' => $student->user->email,
@@ -44,15 +52,17 @@ class StudentAuthController extends Controller
         ])->onlyInput('email');
     }
 
-    // 3. لوحة تحكم التلميذ
+    // لوحة تحكم التلميذ
     public function dashboard()
     {
         $student = auth()->user()->student;
-        $attendances = $student->attendances()->latest()->take(10)->get();
 
-        $totalDays = $student->attendances()->count();
-        $presentDays = $student->attendances()->where('status', 'present')->count();
-        $absentDays = $student->attendances()->where('status', 'absent')->count();
+        // إلا ماكانش عندو سجلات غياب، نرجعو قائمة فاضية
+        $attendances = $student ? $student->attendances()->latest()->take(10)->get() : collect([]);
+
+        $totalDays = $attendances->count();
+        $presentDays = $attendances->where('status', 'present')->count();
+        $absentDays = $attendances->where('status', 'absent')->count();
         $attendanceRate = $totalDays > 0 ? round(($presentDays / $totalDays) * 100) : 0;
 
         return view('student.dashboard', compact(
@@ -60,7 +70,7 @@ class StudentAuthController extends Controller
         ));
     }
 
-    // 4. تسجيل الخروج
+    // تسجيل الخروج
     public function logout(Request $request)
     {
         Auth::logout();
