@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - {{ $student->first_name }} {{ $student->last_name }}</title>
+    <title>لوحة التحكم - {{ $student->first_name ?? 'تلميذ' }} {{ $student->last_name ?? '' }}</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -176,6 +176,7 @@
         .stat-card.orange .stat-icon { background: #fff3e0; color: #ff9800; }
         .stat-card.pink .stat-icon { background: #fce4ec; color: #e91e63; }
         .stat-card.green .stat-icon { background: #e8f5e9; color: #4caf50; }
+        .stat-card.blue .stat-icon { background: #e3f2fd; color: #2196f3; }
 
         /* Welcome Section */
         .welcome-section {
@@ -257,6 +258,37 @@
             font-weight: 600;
         }
 
+        .table {
+            margin: 0;
+        }
+
+        .table thead th {
+            background: #F8F9FA;
+            border: none;
+            padding: 12px;
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 13px;
+        }
+
+        .table tbody td {
+            padding: 12px;
+            vertical-align: middle;
+            border-color: #E9ECEF;
+            font-size: 14px;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success { background: rgba(0,217,163,0.15); color: #00D9A3; }
+        .badge-danger { background: rgba(255,107,107,0.15); color: #FF6B6B; }
+        .badge-warning { background: rgba(255,217,61,0.15); color: #D4A017; }
+
         @media (max-width: 992px) {
             .sidebar {
                 position: fixed;
@@ -283,9 +315,9 @@
         <aside class="sidebar">
             <div class="user-profile">
                 <div class="user-avatar">
-                    {{ substr($student->first_name, 0, 1) }}
+                    {{ substr($student->first_name ?? 'ت', 0, 1) }}
                 </div>
-                <div class="user-name">{{ $student->first_name }} {{ $student->last_name }}</div>
+                <div class="user-name">{{ $student->first_name ?? '' }} {{ $student->last_name ?? '' }}</div>
                 <div class="user-class">{{ $student->class->name ?? 'بدون قسم' }}</div>
             </div>
 
@@ -339,7 +371,7 @@
                 <h2>لوحة التحكم</h2>
                 <div class="d-flex align-items-center gap-3">
                     <div class="text-end">
-                        <strong style="display: block; font-size: 14px;">{{ $student->first_name }} {{ $student->last_name }}</strong>
+                        <strong style="display: block; font-size: 14px;">{{ $student->first_name ?? '' }} {{ $student->last_name ?? '' }}</strong>
                         <small style="color: #666; font-size: 12px;">تلميذ</small>
                     </div>
                 </div>
@@ -347,9 +379,10 @@
 
             <!-- Stats Cards -->
             <div class="stats-row">
+                <!-- نسبة الحضور -->
                 <div class="stat-card orange">
                     <div class="stat-info">
-                        <h3>{{ $attendanceRate }}%</h3>
+                        <h3>{{ $attendanceRate ?? 0 }}%</h3>
                         <p>نسبة الحضور</p>
                     </div>
                     <div class="stat-icon">
@@ -357,9 +390,10 @@
                     </div>
                 </div>
 
+                <!-- أيام الحضور -->
                 <div class="stat-card green">
                     <div class="stat-info">
-                        <h3>{{ $presentDays }}</h3>
+                        <h3>{{ $presentDays ?? 0 }}</h3>
                         <p>أيام الحضور</p>
                     </div>
                     <div class="stat-icon">
@@ -367,13 +401,38 @@
                     </div>
                 </div>
 
+                <!-- أيام الغياب -->
                 <div class="stat-card pink">
                     <div class="stat-info">
-                        <h3>{{ $absentDays }}</h3>
+                        <h3>{{ $absentDays ?? 0 }}</h3>
                         <p>أيام الغياب</p>
                     </div>
                     <div class="stat-icon">
                         <i class="fas fa-times-circle"></i>
+                    </div>
+                </div>
+
+                <!-- حالة التلميذ -->
+                <div class="stat-card blue">
+                    <div class="stat-info">
+                        <h3 style="color: {{ ($student->is_active ?? 1) ? '#4caf50' : '#f44336' }}">
+                            {{ ($student->is_active ?? 1) ? 'نشط' : 'موقوف' }}
+                        </h3>
+                        <p>حالة الدخول</p>
+                    </div>
+                    <div class="stat-icon" style="background: {{ ($student->is_active ?? 1) ? '#e8f5e9' : '#ffebee' }}; color: {{ ($student->is_active ?? 1) ? '#4caf50' : '#f44336' }}">
+                        <i class="fas {{ ($student->is_active ?? 1) ? 'fa-check-circle' : 'fa-ban' }}"></i>
+                    </div>
+                </div>
+
+                <!-- ساعات الحراسة -->
+                <div class="stat-card orange">
+                    <div class="stat-info">
+                        <h3 style="color: #ff9800">{{ $detentionHours ?? 0 }}</h3>
+                        <p>ساعات الحراسة</p>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
                     </div>
                 </div>
             </div>
@@ -382,7 +441,7 @@
             <div class="welcome-section">
                 <div class="welcome-banner">
                     <div class="welcome-text">
-                        <h4>مرحباً بك يا {{ $student->first_name }}! 👋</h4>
+                        <h4>👋 مرحباً بك يا {{ $student->first_name ?? 'تلميذ' }}!</h4>
                         <p>هنا يمكنك متابعة حضورك ونتائجك الدراسية</p>
                     </div>
                     <div class="welcome-icon">
@@ -412,7 +471,7 @@
             </div>
 
             <!-- Recent Attendance -->
-            @if($attendances->count() > 0)
+            @if(isset($attendances) && $attendances->count() > 0)
             <div class="welcome-section">
                 <h5 style="margin-bottom: 20px; color: var(--dark);">
                     <i class="fas fa-history ms-2"></i>
@@ -433,11 +492,11 @@
                                 <td>{{ $attendance->date->format('Y-m-d') }}</td>
                                 <td>
                                     @if($attendance->status == 'present')
-                                        <span class="badge bg-success">حاضر</span>
+                                        <span class="badge badge-success">حاضر</span>
                                     @elseif($attendance->status == 'absent')
-                                        <span class="badge bg-danger">غائب</span>
+                                        <span class="badge badge-danger">غائب</span>
                                     @else
-                                        <span class="badge bg-warning">متأخر</span>
+                                        <span class="badge badge-warning">متأخر</span>
                                     @endif
                                 </td>
                                 <td>{{ $attendance->notes ?? '-' }}</td>
@@ -446,6 +505,30 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+            @endif
+
+            <!-- Detentions Section -->
+            @if(isset($detentions) && $detentions->count() > 0)
+            <div class="welcome-section">
+                <h5 style="margin-bottom: 20px; color: var(--dark);">
+                    <i class="fas fa-exclamation-triangle ms-2" style="color: #ff9800;"></i>
+                    الحراسات والعقوبات
+                </h5>
+
+                @foreach($detentions as $detention)
+                <div class="alert alert-warning d-flex align-items-center" role="alert" style="border-radius: 10px; margin-bottom: 10px;">
+                    <i class="fas fa-clock ms-3"></i>
+                    <div class="flex-grow-1">
+                        <strong>{{ $detention->reason }}</strong><br>
+                        <small>
+                            التاريخ: {{ $detention->date->format('Y-m-d') }} |
+                            المدة: {{ $detention->duration }} ساعة
+                        </small>
+                    </div>
+                    <span class="badge badge-warning">{{ $detention->status }}</span>
+                </div>
+                @endforeach
             </div>
             @endif
         </main>
