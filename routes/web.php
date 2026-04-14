@@ -170,4 +170,3 @@ Route::post('/register', function (Illuminate\Http\Request $request) {
     return redirect()->route('dashboard')->with('success', '✅ تم إنشاء الحساب بنجاح!');
 })->middleware('guest')->name('register.process');
 
-Route::resources('')
