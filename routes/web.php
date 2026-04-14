@@ -2,7 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use App\Http\Controllers\StudentAuthController;
 use App\Http\Controllers\StudentController;
 
@@ -24,7 +27,6 @@ Route::post('/login', function (Request $request) {
 
     if (Auth::attempt($credentials, $request->boolean('remember'))) {
         $request->session()->regenerate();
-        // 🔴 هنا كيردو لـ لوحة تحكم المدير
         return redirect()->intended('/dashboard');
     }
 
@@ -49,62 +51,123 @@ Route::middleware(['auth'])->group(function () {
         Auth::logout();
         return redirect('/');
     })->name('logout');
+
+    // 🔴 Routes ديال تغيير كلمة المرور للمدير (وهو مسجل)
+    // عرض صفحة التغيير
+    Route::get('/change-password', function () {
+        return view('auth.change-password');
+    })->name('password.change');
+
+    // معالجة التغيير
+    Route::put('/change-password', function (Request $request) {
+        // 1. تحقق من كلمة السر القديمة
+        if (!Hash::check($request->current_password, auth()->user()->password)) {
+            return back()->withErrors(['current_password' => 'كلمة المرور الحالية غير صحيحة']);
+        }
+
+        // 2. تحقق من أن الجديدة متطابقة
+        $request->validate([
+            'new_password' => 'required|min:8|confirmed',
+        ]);
+
+        // 3. بدّل كلمة السر
+        $user = auth()->user();
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        // 4. 🔴 سجّل الخروج وودي لـ صفحة login
+        Auth::logout();
+
+        return redirect()->route('login')->with('success', '✅ تم تغيير كلمة المرور بنجاح! سجل دخولك بالكلمة الجديدة');
+    })->name('password.update.current');
 });
 
 // ==========================================
 // 🔵 مسارات التلميذ (منفصلة)
-// // ==========================================
+// ==========================================
 
-// Route::get('/student/login', [StudentAuthController::class, 'showLoginForm'])->name('student.login');
-// Route::post('/student/login', [StudentAuthController::class, 'login'])->name('student.login.post');
-// Route::post('/student/logout', [StudentAuthController::class, 'logout'])->name('student.logout');
-// // مسارات التلميذ
 Route::get('/student/login', [StudentAuthController::class, 'showLoginForm'])->name('student.login');
 Route::post('/student/login', [StudentAuthController::class, 'login'])->name('student.login.post');
+Route::post('/student/logout', [StudentAuthController::class, 'logout'])->name('student.logout');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/student/dashboard', [StudentAuthController::class, 'dashboard'])->name('student.dashboard');
 });
-// Password Reset Routes
-Route::get('/forgot-password', function () {
-    return view('auth.forgot-password');
-})->middleware('guest')->name('password.request');
 
-Route::post('/forgot-password', function (Illuminate\Http\Request $request) {
-    $request->validate(['email' => 'required|email']);
+// ==========================================
+// 🟡 Password Reset Routes (للزوار فقط)
+// ==========================================
 
-    $status = Illuminate\Support\Facades\Password::sendResetLink(
-        $request->only('email')
-    );
+Route::middleware('guest')->group(function () {
 
-    return $status === Illuminate\Support\Facades\Password::RESET_LINK_SENT
-        ? back()->with(['status' => __($status)])
-        : back()->withErrors(['email' => __($status)]);
-})->middleware('guest')->name('password.email');
+    // عرض صفحة "نسيت كلمة المرور"
+    Route::get('/forgot-password', function () {
+        return view('auth.forgot-password');
+    })->name('password.request');
 
-Route::get('/reset-password/{token}', function (string $token) {
-    return view('auth.reset-password', ['token' => $token]);
-})->middleware('guest')->name('password.reset');
+    // إرسال رابط الاستعادة
+    Route::post('/forgot-password', function (Request $request) {
+        $request->validate(['email' => 'required|email']);
 
-Route::post('/reset-password', function (Illuminate\Http\Request $request) {
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
+
+        return $status === Password::RESET_LINK_SENT
+            ? back()->with(['status' => __($status)])
+            : back()->withErrors(['email' => __($status)]);
+    })->name('password.email');
+
+    // عرض صفحة إعادة التعيين
+    Route::get('/reset-password/{token}', function (string $token) {
+        return view('auth.reset-password', ['token' => $token]);
+    })->name('password.reset');
+
+    // معالجة إعادة التعيين
+    Route::post('/reset-password', function (Request $request) {
+        $request->validate([
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password)
+                ])->setRememberToken(Str::random(60));
+                $user->save();
+            }
+        );
+
+        return $status === Password::PASSWORD_RESET
+            ? redirect()->route('login')->with('status', __($status))
+            : back()->withErrors(['email' => [__($status)]]);
+    })->name('password.update');
+});
+// 🔴 Routes ديال التسجيل (للمدير/الأستاذ)
+Route::get('/register', function () {
+    return view('auth.register');
+})->middleware('guest')->name('register');
+
+Route::post('/register', function (Illuminate\Http\Request $request) {
     $request->validate([
-        'token' => 'required',
-        'email' => 'required|email',
-        'password' => 'required|min:8|confirmed',
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'password' => 'required|string|min:8|confirmed',
     ]);
 
-    $status = Illuminate\Support\Facades\Password::reset(
-        $request->only('email', 'password', 'password_confirmation', 'token'),
-        function ($user, string $password) {
-            $user->forceFill([
-                'password' => Illuminate\Support\Facades\Hash::make($password)
-            ])->setRememberToken(Illuminate\Support\Str::random(60));
+    $user = \App\Models\User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => Illuminate\Support\Facades\Hash::make($request->password),
+        'role' => 'teacher', // أو 'admin' حسب الحاجة
+    ]);
 
-            $user->save();
-        }
-    );
+    \Illuminate\Support\Facades\Auth::login($user);
 
-    return $status === Illuminate\Support\Facades\Password::PASSWORD_RESET
-        ? redirect()->route('login')->with('status', __($status))
-        : back()->withErrors(['email' => [__($status)]]);
-})->middleware('guest')->name('password.update');
+    return redirect()->route('dashboard')->with('success', '✅ تم إنشاء الحساب بنجاح!');
+})->middleware('guest')->name('register.process');
+
+Route::resources('')

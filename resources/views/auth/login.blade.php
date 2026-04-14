@@ -94,6 +94,7 @@
                 </div>
 
                 @if(session('error')) <div class="alert alert-danger py-2">{{ session('error') }}</div> @endif
+                @if(session('success')) <div class="alert alert-success py-2">{{ session('success') }}</div> @endif
 
                 <!-- ✅ الفورم كيوجه لـ /login (المسار الصحيح) -->
                 <form method="POST" action="{{ url('/login') }}">
@@ -116,14 +117,15 @@
                             <input class="form-check-input" type="checkbox" name="remember">
                             <label class="form-check-label">تذكرني</label>
                         </div>
-                        <a href="{{ route('password.request') }}" class="forgot-link">نسيت كلمة المرور؟</a>
+                        <a href="{{ route('password.change') }}" class="forgot-link">نسيت كلمة المرور؟</a>
                     </div>
 
                     <button type="submit" class="btn-login">تسجيل الدخول</button>
                 </form>
 
+                <!-- ✅ رابط إنشاء حساب جديد -->
                 <div class="register-text">
-                    <small>حساب التلميذ؟ <a href="{{ url('/student/login') }}">دخول التلاميذ</a></small>
+                    <small>ليس لديك حساب؟ <a href="{{ route('register') }}">إنشاء حساب جديد</a></small>
                 </div>
             </div>
         </div>
