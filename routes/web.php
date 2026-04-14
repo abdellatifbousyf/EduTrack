@@ -65,3 +65,46 @@ Route::post('/student/login', [StudentAuthController::class, 'login'])->name('st
 Route::middleware(['auth'])->group(function () {
     Route::get('/student/dashboard', [StudentAuthController::class, 'dashboard'])->name('student.dashboard');
 });
+// Password Reset Routes
+Route::get('/forgot-password', function () {
+    return view('auth.forgot-password');
+})->middleware('guest')->name('password.request');
+
+Route::post('/forgot-password', function (Illuminate\Http\Request $request) {
+    $request->validate(['email' => 'required|email']);
+
+    $status = Illuminate\Support\Facades\Password::sendResetLink(
+        $request->only('email')
+    );
+
+    return $status === Illuminate\Support\Facades\Password::RESET_LINK_SENT
+        ? back()->with(['status' => __($status)])
+        : back()->withErrors(['email' => __($status)]);
+})->middleware('guest')->name('password.email');
+
+Route::get('/reset-password/{token}', function (string $token) {
+    return view('auth.reset-password', ['token' => $token]);
+})->middleware('guest')->name('password.reset');
+
+Route::post('/reset-password', function (Illuminate\Http\Request $request) {
+    $request->validate([
+        'token' => 'required',
+        'email' => 'required|email',
+        'password' => 'required|min:8|confirmed',
+    ]);
+
+    $status = Illuminate\Support\Facades\Password::reset(
+        $request->only('email', 'password', 'password_confirmation', 'token'),
+        function ($user, string $password) {
+            $user->forceFill([
+                'password' => Illuminate\Support\Facades\Hash::make($password)
+            ])->setRememberToken(Illuminate\Support\Str::random(60));
+
+            $user->save();
+        }
+    );
+
+    return $status === Illuminate\Support\Facades\Password::PASSWORD_RESET
+        ? redirect()->route('login')->with('status', __($status))
+        : back()->withErrors(['email' => [__($status)]]);
+})->middleware('guest')->name('password.update');

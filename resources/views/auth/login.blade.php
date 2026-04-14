@@ -74,13 +74,13 @@
                 <h1 class="hero-title">تراث عميق،<br>مستقبل مبدع.</h1>
                 <p class="hero-desc">تلتزم ثانوية مولاي رشيد التأهيلية بتقديم تعليم متميز يجمع بين أصالة القيم المغربية وتفكيرها العلمي العالي لتشجيع جيل من القادة القادرين على صنع الفرق.</p>
                 <div class="stats-row">
-                    <div class="stat-card"><span class="stat-num">100%</span><span class="stat-lbl">نسبة النجاح</span></div>
-                    <div class="stat-card"><span class="stat-num">+25</span><span class="stat-lbl">سنة خبرة</span></div>
+                    <div class="stat-card"><span class="stat-num">89.8%</span><span class="stat-lbl">نسبة النجاح</span></div>
+                    <div class="stat-card"><span class="stat-num">+45</span><span class="stat-lbl">سنة خبرة</span></div>
                     <div class="stat-card"><span class="stat-num">+50</span><span class="stat-lbl">شريك مؤسسي</span></div>
                 </div>
                 <div class="footer-links">
                     <a href="#">Accessibility</a><a href="#">Terms of Service</a><a href="#">Privacy Policy</a>
-                    <span class="ms-3">© 2024 Moulay Rachid Institution</span>
+                    <span class="ms-3">© 2026 Moulay Rachid Institution</span>
                 </div>
             </div>
         </div>
@@ -116,7 +116,7 @@
                             <input class="form-check-input" type="checkbox" name="remember">
                             <label class="form-check-label">تذكرني</label>
                         </div>
-                        <a href="#" class="forgot-link">نسيت كلمة المرور؟</a>
+                        <a href="{{ route('password.request') }}" class="forgot-link">نسيت كلمة المرور؟</a>
                     </div>
 
                     <button type="submit" class="btn-login">تسجيل الدخول</button>
