@@ -125,7 +125,7 @@
 
                 <!-- ✅ رابط إنشاء حساب جديد -->
                 <div class="register-text">
-                    <small>ليس لديك حساب؟ <a href="{{ route('register') }}">إنشاء حساب جديد</a></small>
+                    <small>ليس لديك حساب؟ <a href="{{ route('rest-password') }}">إنشاء حساب جديد</a></small>
                 </div>
             </div>
         </div>
